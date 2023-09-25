@@ -1,3 +1,6 @@
 [submodule "Matte-Anything"]
 	path = Matte-Anything
 	url = https://github.com/hustvl/Matte-Anything.git
+[submodule "Matte_Anything"]
+	path = Matte_Anything
+	url = https://github.com/hustvl/Matte-Anything.git
