@@ -5,6 +5,8 @@ import cv2
 import numpy as np
 import torch
 from PIL import Image, ImageDraw
+from detectron2.checkpoint import DetectionCheckpointer
+from detectron2.config import LazyConfig, instantiate
 from groundingdino.config import GroundingDINO_SwinT_OGC
 from groundingdino.util.inference import Model as DinoModel
 from segment_anything import sam_model_registry, SamPredictor
@@ -268,3 +270,74 @@ class MaskToTrimap:
         # mask_np = mask_np.astype(np.float32) / 255.0
         # trimap = torch.from_numpy(mask_np).unsqueeze(0)
         return (trimap,trimap)
+
+
+vitmatte_config = {
+    'vit_b': './custom_nodes/Comfy_MatteAnything/Matte_Anything/configs/matte_anything.py',
+}
+def init_vitmatte(model_type, model_path):
+    """
+    Initialize the vitmatte with model_type in ['vit_s', 'vit_b']
+    """
+    cfg = LazyConfig.load(os.path.abspath(vitmatte_config[model_type]))
+    vitmatte = instantiate(cfg.model)
+    # TODO: add device mode
+    vitmatte.to("mps")
+    vitmatte.eval()
+    DetectionCheckpointer(vitmatte).load(model_path)
+
+    return vitmatte
+
+
+class LoadVITMatteModel:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "model_name": (folder_paths.get_filename_list("matte"), ),
+                "device_mode": (["AUTO", "Prefer GPU", "CPU"],),
+            }
+        }
+
+    RETURN_TYPES = ("VIT_MATTE_MODEL",)
+    FUNCTION = "load_model"
+
+    CATEGORY = "Matte Anything"
+
+    def load_model(self, model_name, device_mode="auto"):
+        model_path = folder_paths.get_full_path("matte", model_name)
+        vitmatte = init_vitmatte('vit_b', model_path)
+        return (vitmatte,)
+
+class GenerateVITMatte:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image": ("IMAGE", {}),
+                "trimap": ("TRIMAP", {}),
+                "vit_matte_model": ("VIT_MATTE_MODEL", {}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "generate_matte"
+
+    CATEGORY = "Matte Anything"
+
+    def generate_matte(self, image, trimap, vit_matte_model):
+        image_in = pil2cv(tensor2pil(image))
+        input = {
+            "image": torch.from_numpy(image_in).permute(2, 0, 1).unsqueeze(0).to("mps")/255,
+            "trimap": trimap.unsqueeze(0).to("mps"),
+            # "trimap": torch.from_numpy(trimap).unsqueeze(0).unsqueeze(0),
+        }
+        alpha = vit_matte_model(input)['phas'].flatten(0, 2)
+        alpha = alpha.detach().cpu().numpy()
+        # Converts alpha matte to RGBA image using the image tensor
+        image = cv2.cvtColor(image_in, cv2.COLOR_BGR2RGBA)
+        alpha = np.clip(255. * alpha, 0, 255).astype(np.uint8)
+        image[:, :, 3] = alpha
+        image = Image.fromarray(image)
+        image = pil2tensor(image)
+        return (image,)
