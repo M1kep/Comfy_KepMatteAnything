@@ -1,7 +1,7 @@
 import torch.nn as nn
 from functools import partial
 from detectron2.config import LazyCall as L
-from modeling import ViTMatte, MattingCriterion, Detail_Capture, ViT
+from custom_nodes.Comfy_MatteAnything.Matte_Anything.modeling import ViTMatte, MattingCriterion, Detail_Capture, ViT
 
 # Base
 embed_dim, num_heads = 384, 6
