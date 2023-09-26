@@ -51,6 +51,7 @@ class SAMLoader:
             }
         }
 
+    RELOAD_INST = True
     RETURN_TYPES = ("SAM_MODEL",)
     FUNCTION = "load_model"
 
@@ -86,6 +87,7 @@ class InitSAMPredictor:
             }
         }
 
+    RELOAD_INST = True
     RETURN_TYPES = ("SAM_PREDICTOR",)
     FUNCTION = "init_predictor"
 
@@ -107,6 +109,7 @@ class LoadDINOModel:
             }
         }
 
+    RELOAD_INST = True
     RETURN_TYPES = ("DINO_MODEL",)
     FUNCTION = "load_model"
 
@@ -174,6 +177,7 @@ class DinoBoxes:
             }
         }
 
+    RELOAD_INST = True
     RETURN_TYPES = ("IMAGE", "DINO_BOXES")
     FUNCTION = "get_boxes"
 
@@ -213,6 +217,7 @@ class SAMMaskFromBoxes:
             }
         }
 
+    RELOAD_INST = True
     RETURN_TYPES = ("MASK",)
     FUNCTION = "get_mask"
 
@@ -250,6 +255,7 @@ class MaskToTrimap:
             }
         }
 
+    RELOAD_INST = True
     RETURN_TYPES = ("TRIMAP","MASK")
     FUNCTION = "get_trimap"
 
@@ -301,6 +307,7 @@ class LoadVITMatteModel:
             }
         }
 
+    RELOAD_INST = True
     RETURN_TYPES = ("VIT_MATTE_MODEL",)
     FUNCTION = "load_model"
 
@@ -322,6 +329,7 @@ class GenerateVITMatte:
             }
         }
 
+    RELOAD_INST = True
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "generate_matte"
 
