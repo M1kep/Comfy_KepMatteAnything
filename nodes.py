@@ -281,8 +281,8 @@ def init_vitmatte(model_type, model_path):
     """
     cfg = LazyConfig.load(os.path.abspath(vitmatte_config[model_type]))
     vitmatte = instantiate(cfg.model)
-    # TODO: add device mode
-    vitmatte.to("mps")
+    device = comfy.model_management.get_torch_device()
+    vitmatte.to(device)
     vitmatte.eval()
     DetectionCheckpointer(vitmatte).load(model_path)
 
@@ -327,9 +327,10 @@ class GenerateVITMatte:
 
     def generate_matte(self, image, trimap, vit_matte_model):
         image_in = pil2cv(tensor2pil(image))
+        device = comfy.model_management.get_torch_device()
         input = {
-            "image": torch.from_numpy(image_in).permute(2, 0, 1).unsqueeze(0).to("mps")/255,
-            "trimap": trimap.unsqueeze(0).to("mps"),
+            "image": torch.from_numpy(image_in).permute(2, 0, 1).unsqueeze(0).to(device)/255,
+            "trimap": trimap.unsqueeze(0).to(device),
             # "trimap": torch.from_numpy(trimap).unsqueeze(0).unsqueeze(0),
         }
         alpha = vit_matte_model(input)['phas'].flatten(0, 2)
