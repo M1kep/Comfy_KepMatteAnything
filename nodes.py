@@ -69,7 +69,6 @@ class SAMLoader:
         sam = sam_model_registry[model_kind](checkpoint=modelname)
         # Unless user explicitly wants to use CPU, we use GPU
         device = comfy.model_management.get_torch_device() if device_mode == "Prefer GPU" else "CPU"
-
         if device_mode == "Prefer GPU":
             sam.to(device=device)
 
@@ -273,16 +272,19 @@ class MaskToTrimap:
 
 
 vitmatte_config = {
-    'vit_b': './custom_nodes/Comfy_MatteAnything/Matte_Anything/configs/matte_anything.py',
+    'vit_b': './custom_nodes/Comfy_KepMatteAnything/Matte_Anything/configs/matte_anything.py',
 }
-def init_vitmatte(model_type, model_path):
+def init_vitmatte(model_type, model_path, device_mode):
     """
     Initialize the vitmatte with model_type in ['vit_s', 'vit_b']
     """
     cfg = LazyConfig.load(os.path.abspath(vitmatte_config[model_type]))
     vitmatte = instantiate(cfg.model)
-    # TODO: add device mode
-    vitmatte.to("mps")
+
+    device = comfy.model_management.get_torch_device() if device_mode in ("Prefer GPU", "AUTO") else "CPU"
+    if device != "CPU":
+         vitmatte.to(device)
+
     vitmatte.eval()
     DetectionCheckpointer(vitmatte).load(model_path)
 
@@ -306,7 +308,7 @@ class LoadVITMatteModel:
 
     def load_model(self, model_name, device_mode="auto"):
         model_path = folder_paths.get_full_path("matte", model_name)
-        vitmatte = init_vitmatte('vit_b', model_path)
+        vitmatte = init_vitmatte('vit_b', model_path, device_mode)
         return (vitmatte,)
 
 class GenerateVITMatte:
@@ -326,10 +328,11 @@ class GenerateVITMatte:
     CATEGORY = "Matte Anything"
 
     def generate_matte(self, image, trimap, vit_matte_model):
+        device = vit_matte_model.device
         image_in = pil2cv(tensor2pil(image))
         input = {
-            "image": torch.from_numpy(image_in).permute(2, 0, 1).unsqueeze(0).to("mps")/255,
-            "trimap": trimap.unsqueeze(0).to("mps"),
+            "image": torch.from_numpy(image_in).permute(2, 0, 1).unsqueeze(0).to(device)/255,
+            "trimap": trimap.unsqueeze(0).to(device),
             # "trimap": torch.from_numpy(trimap).unsqueeze(0).unsqueeze(0),
         }
         alpha = vit_matte_model(input)['phas'].flatten(0, 2)
