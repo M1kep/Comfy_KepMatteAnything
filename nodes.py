@@ -330,7 +330,7 @@ class GenerateVITMatte:
         }
 
     RELOAD_INST = True
-    RETURN_TYPES = ("IMAGE",)
+    RETURN_TYPES = ("IMAGE", "MASK")
     FUNCTION = "generate_matte"
 
     CATEGORY = "Matte Anything"
@@ -344,11 +344,9 @@ class GenerateVITMatte:
             # "trimap": torch.from_numpy(trimap).unsqueeze(0).unsqueeze(0),
         }
         alpha = vit_matte_model(input)['phas'].flatten(0, 2)
-        alpha = alpha.detach().cpu().numpy()
+        alpha_np = alpha.detach().cpu().numpy()
         # Converts alpha matte to RGBA image using the image tensor
         image = cv2.cvtColor(image_in, cv2.COLOR_BGR2RGBA)
-        alpha = np.clip(255. * alpha, 0, 255).astype(np.uint8)
-        image[:, :, 3] = alpha
-        image = Image.fromarray(image)
-        image = pil2tensor(image)
-        return (image,)
+        alpha_np = np.clip(255. * alpha_np, 0, 255).astype(np.uint8)
+        image[:, :, 3] = alpha_np
+        return pil2tensor(Image.fromarray(image)), alpha
